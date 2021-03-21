@@ -68,7 +68,7 @@ func Renew(uri, token, rootCAs string, verbose int) TokenRecord {
 	}
 	// get http client
 	client := &http.Client{}
-	tr, err := transport(rootCAs, verbose)
+	tr, err := Transport(rootCAs, verbose)
 	if err == nil {
 		client = &http.Client{Transport: tr}
 	}
@@ -96,8 +96,8 @@ func Renew(uri, token, rootCAs string, verbose int) TokenRecord {
 	return rec
 }
 
-// helper function to get http transport
-func transport(rootCAs string, verbose int) (*http.Transport, error) {
+// Transport helper function to get http transport
+func Transport(rootCAs string, verbose int) (*http.Transport, error) {
 	certPool := x509.NewCertPool()
 	files, err := ioutil.ReadDir(rootCAs)
 	if err != nil {
