@@ -27,7 +27,7 @@ func info() string {
 	return fmt.Sprintf("git=%s go=%s date=%s", version, goVersion, tstamp)
 }
 
-// helper function to read token
+// ReadToken reads either given token file or string and return the token
 func ReadToken(r string) string {
 	if _, err := os.Stat(r); err == nil {
 		b, e := ioutil.ReadFile(r)
