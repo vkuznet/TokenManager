@@ -1,10 +1,5 @@
 VERSION=`git rev-parse --short HEAD`
-OS := $(shell uname)
-ifeq ($(OS),Darwin)
 flags=-ldflags="-s -w -X main.version=${VERSION}"
-else
-flags=-ldflags="-s -w -X main.version=${VERSION} -static"
-endif
 
 all: build
 
