@@ -1,31 +1,18 @@
-package main
+package TokenManager
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"runtime"
 	"strings"
-	"time"
 )
-
-// git version of our code
-var version string
-
-// helper function to show version info
-func info() string {
-	goVersion := runtime.Version()
-	tstamp := time.Now()
-	return fmt.Sprintf("git=%s go=%s date=%s", version, goVersion, tstamp)
-}
 
 // ReadToken reads either given token file or string and return the token
 func ReadToken(r string) string {
@@ -141,18 +128,6 @@ func Transport(rootCAs string, verbose int) (*http.Transport, error) {
 	return tr, nil
 }
 
-// helper function to print our token record
-func printRecord(rec TokenRecord, verbose int) {
-	if verbose > 0 {
-		data, err := json.MarshalIndent(rec, "", "    ")
-		if err == nil {
-			log.Printf("New token record:\n%s", string(data))
-		} else {
-			log.Println("Unable to marshal record", err)
-		}
-	}
-}
-
 // LoadCAs helper function loads CERN CAs
 func LoadCAs(verbose int) (string, error) {
 	var homeDir string
@@ -196,64 +171,4 @@ func LoadCAs(verbose int) (string, error) {
 		}
 	}
 	return dname, nil
-}
-
-// main function
-func main() {
-	var version bool
-	flag.BoolVar(&version, "version", false, "Show version")
-	var verbose int
-	flag.IntVar(&verbose, "verbose", 0, "verbosity level")
-	var token string
-	flag.StringVar(&token, "token", "", "token string or file")
-	var out string
-	flag.StringVar(&out, "out", "", "output file to store refreshed token")
-	var uri string
-	flag.StringVar(&uri, "url", "", "token URL")
-	var rootCAs string
-	flag.StringVar(&rootCAs, "rootCAs", "", "location of root CAs")
-	var interval int
-	flag.IntVar(&interval, "interval", 0, "run as daemon with given interval")
-	flag.Parse()
-	if version {
-		fmt.Println(info())
-		os.Exit(0)
-	}
-	if rootCAs == "" {
-		dir, err := LoadCAs(verbose)
-		if err != nil {
-			log.Fatalf("unable to load CERN CAs: %v", err)
-		}
-		rootCAs = dir
-	}
-	if verbose > 0 {
-		fmt.Println("Read CERN CAs from", rootCAs)
-	}
-	rurl := fmt.Sprintf("%s/token/renew", uri)
-	rec := Renew(rurl, token, rootCAs, verbose)
-	if out != "" {
-		err := ioutil.WriteFile(out, []byte(rec.AccessToken), 0777)
-		if err != nil {
-			log.Fatalf("Unable to write, file: %s, error: %v\n", out, err)
-		}
-	}
-	printRecord(rec, verbose)
-	// run as daemon if requested
-	if interval > 0 {
-		for {
-			d := time.Duration(interval) * time.Second
-			time.Sleep(d)
-			// get refresh token from previous record
-			rtoken := rec.RefreshToken
-			// renew token using our refresh token
-			rec = Renew(rurl, rtoken, rootCAs, verbose)
-			if out != "" {
-				err := ioutil.WriteFile(out, []byte(rec.AccessToken), 0777)
-				if err != nil {
-					log.Fatalf("Unable to write, file: %s, error: %v\n", out, err)
-				}
-			}
-			printRecord(rec, verbose)
-		}
-	}
 }
